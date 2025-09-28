@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_classification
 import numpy as np
 from dotenv import load_dotenv
+from joblib import Memory
 
 load_dotenv()
 
@@ -31,8 +32,10 @@ def build_model(seed: int = 42) -> Pipeline:
     X, y = make_classification(
         n_samples=3000, n_features=6, n_informative=4, weights=[0.9, 0.1], random_state=seed
     )
+    cache = Memory(location="model_cache", verbose=0)
     pipe = Pipeline([("scaler", StandardScaler()),
-                     ("clf", LogisticRegression(max_iter=1000, class_weight={0:1.0, 1:5.0}, random_state=seed))])
+                     ("clf", LogisticRegression(max_iter=1000, class_weight={0:1.0, 1:5.0}, random_state=seed))],
+                    memory=cache)
     pipe.fit(X, y)
     return pipe
 
