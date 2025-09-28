@@ -1,0 +1,15 @@
+version: '3.9'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: cnp_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: cnpdb
+      MYSQL_USER: cnp_user
+      MYSQL_PASSWORD: cnp_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: --default-authentication-plugin=mysql_native_password --sql-mode=STRICT_ALL_TABLES

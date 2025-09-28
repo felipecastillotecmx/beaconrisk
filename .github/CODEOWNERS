@@ -1,0 +1,4 @@
+# Ajusta los alias a tu organización
+*   @tu-org/backend  @tu-org/mlops
+/db/*   @tu-org/data
+/tests/*  @tu-org/qa

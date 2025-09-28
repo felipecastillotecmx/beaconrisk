@@ -1,0 +1,9 @@
+[run]
+omit =
+    .venv/*
+    tests/*
+    db/*
+    **/__init__.py
+[report]
+exclude_lines =
+    pragma: no cover
