@@ -129,45 +129,49 @@ jobs:
   sonarqube:
     name: Build and analyze
     runs-on: ubuntu-latest
-    needs: [tests, it-mysql]
+    needs: [ tests, it-mysql ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Trae coverage.xml y junit.xml publicados por el job "tests"
       - name: Download coverage & junit from unit tests
         uses: actions/download-artifact@v4
         with:
           name: tests-reports
           path: .
 
+      # Requerido por el scanner (mantener Java 17)
       - name: Set up JDK (required by SonarQube Scanner)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+      # Scanner actualizado a @v6 (sin comentarios en args)
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          args: >
+          args: |
+            -Dsonar.verbose=true
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.python.xunit.reportPath=junit.xml
-            -Dsonar.verbose=true
-            # Si NO tienes sonar-project.properties, descomenta y ajusta:
-            # -Dsonar.projectKey=tu-key
-            # -Dsonar.projectName=tu-nombre
+            # Si NO tienes sonar-project.properties, agrega también (QUITANDO este comentario y el '#'):
+            # -Dsonar.projectKey=TU_KEY
+            # -Dsonar.sources=.
 
+      # Útil para debug: muestra la tarea creada en el server
       - name: Show Sonar task file (debug)
         if: always()
         run: |
           if [ -f .scannerwork/report-task.txt ]; then
             echo "---- report-task.txt ----"
-            cat .scannerwork/report-task.txt || true
+            cat .scannerwork/report-task.txt
           else
             echo "No .scannerwork/report-task.txt found (scan may not have started)."
           fi
@@ -175,8 +179,6 @@ jobs:
       - name: SonarQube Quality Gate (only on main)
         if: github.ref == 'refs/heads/main'
         uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
-        with:
-          pollingTimeoutSec: 600
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
