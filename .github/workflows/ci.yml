@@ -136,36 +136,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Trae coverage.xml y junit.xml publicados por el job "tests"
       - name: Download coverage & junit from unit tests
         uses: actions/download-artifact@v4
         with:
           name: tests-reports
           path: .
 
-      # Requerido por el scanner (mantener Java 17)
       - name: Set up JDK (required by SonarQube Scanner)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # Scanner actualizado a @v6 (sin comentarios en args)
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          args: |
+          args: >
             -Dsonar.verbose=true
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.python.xunit.reportPath=junit.xml
-            # Si NO tienes sonar-project.properties, agrega también (QUITANDO este comentario y el '#'):
-            # -Dsonar.projectKey=TU_KEY
-            # -Dsonar.sources=.
+            -Dsonar.projectBaseDir=.
 
-      # Útil para debug: muestra la tarea creada en el server
       - name: Show Sonar task file (debug)
         if: always()
         run: |
