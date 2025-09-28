@@ -1,5 +1,8 @@
 # CNP Risk Scorer — PoC (FastAPI + scikit-learn + MySQL)
 
+**Endpoints:** `/health`, `/score` (con green-lane activable con `SAFE_APPROVE=1`).  
+**Decisión:** `APPROVE < 0.30` · `0.30–0.69 REVIEW` · `≥ 0.70 DECLINE`.
+
 ## 1) Levantar MySQL con datos de ejemplo
 ```bash
 docker compose up -d
@@ -10,34 +13,26 @@ DB: `cnpdb`  |  Usuario: `cnp_user`  |  Password: `cnp_pass`
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env .env
+cp .env.example .env   # edita si cambiaste credenciales
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 3) Endpoints
-- `GET /health`
-- `POST /score`
-
-## 4) Umbrales de decisión
-- `APPROVE` < 0.30  |  `REVIEW` 0.30–0.69  |  `DECLINE` ≥ 0.70
-
-## 5) Bodies Postman (resultados distintos)
-### A) Revisión
+## 3) Cuerpos de ejemplo (Postman)
+### A) Aprobación (green-lane)
 ```json
 {
   "merchant_id": "m_low",
-  "amount": 120.0,
+  "amount": 150.0,
   "currency": "MXN",
   "country": "MX",
-  "email": "a1@example.com",
-  "ip": "10.0.0.10",
-  "device_id": "dev_a1",
+  "email": "approve_demo_001@example.com",
+  "ip": "10.77.66.55",
+  "device_id": "dev_approve_001",
   "card_bin": "520157",
-  "card_hash": "card_a1"
+  "card_hash": "card_approve_001"
 }
 ```
-
-### B) Declinado
+### B) Revisión
 ```json
 {
   "merchant_id": "m_mid",
@@ -51,46 +46,29 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
   "card_hash": "card_mid"
 }
 ```
-
-### C) Aprobado
+### C) Rechazo
 ```json
 {
-  "merchant_id": "m_low",
-  "amount": 150.0,
+  "merchant_id": "m_high",
+  "amount": 8000.0,
   "currency": "MXN",
   "country": "MX",
-  "email": "approve_demo_001@example.com",
-  "ip": "10.77.66.55",
-  "device_id": "dev_approve_001",
+  "email": "fraudster@example.com",
+  "ip": "187.190.10.10",
+  "device_id": "dev_x9",
   "card_bin": "520157",
-  "card_hash": "card_approve_001"
+  "card_hash": "card_risky"
 }
-
 ```
 
-> Con las semillas de `db/init.sql`, estos 3 casos devuelven **APPROVE**, **REVIEW** y **DECLINE** respectivamente.
+## 4) CI/CD (GitHub Actions) + SonarQube
+- Job **tests**: unit tests (excluye integration), cobertura y *coverage gate* ≥ 80%.
+- Job **it-mysql**: pruebas de integración con servicio MySQL + `db/init.sql`.
+- Job **sonarqube**: escaneo y **Quality Gate** (depende de tests + integration).
 
+Secrets requeridos:
+- `SONAR_HOST_URL` — URL SonarQube.
+- `SONAR_TOKEN` — token para análisis.
 
----
-
-## CI/CD con GitHub Actions + SonarQube
-
-### Secrets requeridos (en el repo)
-- `SONAR_HOST_URL` — URL de tu SonarQube (self-hosted).
-- `SONAR_TOKEN` — Token de proyecto/usuario con permisos de análisis.
-
-### Flujo
-1. Al hacer *push/PR* a `main`:
-   - **Job tests**: ejecuta `pytest` con cobertura y sube `coverage.xml` como artefacto.
-   - **Job sonarqube** (depende de `tests`): descarga `coverage.xml`, corre el escaneo y **espera el Quality Gate**.
-2. Umbrales recomendados (configurar en SonarQube → Quality Gates) para **New Code**:
-   - Coverage ≥ 80%, Bugs/Vulnerabilities = 0, Code Smells críticos = 0.
-
-
-## Protección de rama (recomendado)
-Configura `main` para requerir los checks:
-
-- `CI — Tests & SonarQube / Unit tests & coverage`
-- `CI — Tests & SonarQube / SonarQube Scan & Quality Gate`
-
-Consulta `BRANCH_PROTECTION.md` para hacerlo por UI o con `gh`.
+## 5) Protección de rama
+Ver `BRANCH_PROTECTION.md` para configurar checks obligatorios en `main`.
